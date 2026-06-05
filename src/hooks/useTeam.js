@@ -6,7 +6,12 @@ export function useTeam() {
   const [team, setTeam] = useState([])
 
   function addPokemon(pokemon) {
-    // TODO: add pokemon to team (max 6, no duplicates)
+    if (team.length >= MAX_TEAM_SIZE){
+      return `Team is at max size of ${MAX_TEAM_SIZE}`
+    } else if (team.some(p => p.id === pokemon.id)){
+      return `Team already contains ${pokemon.name}`
+    }
+    setTeam(prevTeam => [...prevTeam, pokemon]);
   }
 
   function removePokemon(id) {
