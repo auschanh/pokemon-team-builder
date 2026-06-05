@@ -24,6 +24,3 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
-
-# Claude Code context — keep local only
-CLAUDE.md
