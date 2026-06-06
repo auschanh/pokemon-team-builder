@@ -4,11 +4,17 @@ import PokemonCard from './PokemonCard'
 
 export default function SearchBar({ onSelect }) {
   const [query, setQuery] = useState('')
-  const { results, loading, error, search } = usePokemon()
+  const { results, loading, error: searchError, search } = usePokemon()
 
   function handleChange(e) {
     setQuery(e.target.value)
     search(e.target.value)
+  }
+
+  function handleSelect(pokemon) {
+    onSelect(pokemon)
+    setQuery('')
+    search('')
   }
 
   return (
@@ -22,11 +28,11 @@ export default function SearchBar({ onSelect }) {
       />
 
       {loading && <p className="text-gray-400 text-sm">Searching…</p>}
-      {error && <p className="text-red-400 text-sm">{error}</p>}
+      {searchError && <p className="text-red-400 text-sm">{searchError}</p>}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {results.map((pokemon) => (
-          <PokemonCard key={pokemon.id} pokemon={pokemon} onClick={() => onSelect(pokemon)} />
+          <PokemonCard key={pokemon.id} pokemon={pokemon} onClick={() => handleSelect(pokemon)} />
         ))}
       </div>
     </div>

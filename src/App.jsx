@@ -7,7 +7,6 @@ import { useEffect } from 'react'
 
 export default function App() {
   const { team, error, addPokemon, removePokemon } = useTeam()
-  console.log(team)
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
       <header className="border-b border-gray-800 px-6 py-4">
@@ -21,9 +20,8 @@ export default function App() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-        {error && <p className='text-red-400'>{error}</p>}
         <SearchBar onSelect={addPokemon} />
-        <TeamBuilder team={team} onRemove={removePokemon} />
+        <TeamBuilder team={team} teamError={error} onRemove={removePokemon} />
         <TypeCoverage team={team} />
       </main>
     </div>
