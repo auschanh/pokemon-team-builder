@@ -8,7 +8,7 @@ export default function SearchBar({ onSelect }) {
 
   function handleChange(e) {
     setQuery(e.target.value)
-    // TODO: call search() — consider debouncing
+    search(e.target.value)
   }
 
   return (

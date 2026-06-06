@@ -10,7 +10,7 @@ export default function TeamSlot({ pokemon, onRemove }) {
 
   return (
     <div className="rounded-xl bg-gray-800 border border-gray-700 p-3 relative">
-      {/* TODO: show sprite, name, types, and a remove button */}
+      <img src={pokemon.sprite} />
       <button
         onClick={onRemove}
         className="absolute top-2 right-2 text-gray-500 hover:text-red-400 text-xs"

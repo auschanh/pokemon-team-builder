@@ -11,13 +11,16 @@ export function useTeam() {
       setError(`Team is at max size of ${MAX_TEAM_SIZE}`)
       return
     } 
+    // Check for duplicates
     if (team.some(p => p.id === pokemon.id)){
       setError(`Team already contains ${pokemon.name}`)
       return
     }
+
     setError(null)
     setTeam(prevTeam => [...prevTeam, pokemon]);
   }
+
 
   function removePokemon(id) {
     setError(null)
