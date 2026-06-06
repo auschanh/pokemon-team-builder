@@ -4,19 +4,25 @@ const MAX_TEAM_SIZE = 6
 
 export function useTeam() {
   const [team, setTeam] = useState([])
+  const [error, setError] = useState(null)
 
   function addPokemon(pokemon) {
     if (team.length >= MAX_TEAM_SIZE){
-      return `Team is at max size of ${MAX_TEAM_SIZE}`
-    } else if (team.some(p => p.id === pokemon.id)){
-      return `Team already contains ${pokemon.name}`
+      setError(`Team is at max size of ${MAX_TEAM_SIZE}`)
+      return
+    } 
+    if (team.some(p => p.id === pokemon.id)){
+      setError(`Team already contains ${pokemon.name}`)
+      return
     }
+    setError(null)
     setTeam(prevTeam => [...prevTeam, pokemon]);
   }
 
   function removePokemon(id) {
-    // TODO: remove pokemon from team by id
+    setError(null)
+    setTeam(prevTeam => prevTeam.filter(p => p.id !== id));
   }
 
-  return { team, addPokemon, removePokemon }
+  return { team, error, addPokemon, removePokemon }
 }
