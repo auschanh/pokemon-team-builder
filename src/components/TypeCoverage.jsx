@@ -33,20 +33,30 @@ function CoverageCard({ title, accent, description, sections }) {
 export default function TypeCoverage({ team }) {
   if (team.length === 0) return null
 
-  // Defensive: what threatens this team?
+  // Defensive: for each type, collect every multiplier across the team
   const incomingPerPokemon = team.map(p => getIncomingEffectiveness(p.types))
-  const teamDefense = {}
+  const teamDefenseAll = {}
   for (const incoming of incomingPerPokemon) {
     for (const [type, multiplier] of Object.entries(incoming)) {
-      if (!teamDefense[type] || multiplier > teamDefense[type]) {
-        teamDefense[type] = multiplier
-      }
+      if (!teamDefenseAll[type]) teamDefenseAll[type] = []
+      teamDefenseAll[type].push(multiplier)
     }
   }
 
-  const weaknesses  = Object.entries(teamDefense).filter(([, m]) => m >= 2).map(([t]) => t)
-  const resistances = Object.entries(teamDefense).filter(([, m]) => m === 0.5).map(([t]) => t)
-  const immunities  = Object.entries(teamDefense).filter(([, m]) => m === 0).map(([t]) => t)
+  // Weak to: at least one pokemon is weak AND nobody resists or is immune
+  const weaknesses  = Object.entries(teamDefenseAll)
+    .filter(([, ms]) => ms.some(m => m >= 2) && !ms.some(m => m < 1))
+    .map(([t]) => t)
+
+  // Resists: at least one pokemon resists and nobody is weak to it
+  const resistances = Object.entries(teamDefenseAll)
+    .filter(([, ms]) => ms.some(m => m === 0.5) && !ms.some(m => m >= 2))
+    .map(([t]) => t)
+
+  // Immune: at least one pokemon is immune
+  const immunities  = Object.entries(teamDefenseAll)
+    .filter(([, ms]) => ms.some(m => m === 0))
+    .map(([t]) => t)
 
   // Offensive: what does this team hit hard?
   const teamOffense = {}
@@ -70,8 +80,18 @@ export default function TypeCoverage({ team }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <CoverageCard
-          title="⛨ Defensive"
+          title="⚔️ Offensive"
           accent="border-red-500"
+          description="Your team attacking is:"
+          sections={[
+            { label: 'Super effective against (2x)', labelColor: 'text-indigo-400', types: superEffective, emptyText: 'No coverage' },
+            { label: 'Resisted by (0.5)',             labelColor: 'text-yellow-400', types: notCovered,     emptyText: 'Full coverage!' },
+          ]}
+        />
+
+         <CoverageCard
+          title="⛨ Defensive"
+          accent="border-indigo-500"
           description="Your team defending (is):"
           sections={[
             { label: 'Weak to (2x)',   labelColor: 'text-red-400',   types: weaknesses,  emptyText: 'No weaknesses!' },
@@ -79,17 +99,14 @@ export default function TypeCoverage({ team }) {
             { label: 'Immune to (0)', labelColor: 'text-blue-400',  types: immunities,  emptyText: 'No immunities' },
           ]}
         />
-
-        <CoverageCard
-          title="⚔️ Offensive"
-          accent="border-indigo-500"
-          description="Your team attacking is:"
-          sections={[
-            { label: 'Super effective against (2x)', labelColor: 'text-indigo-400', types: superEffective, emptyText: 'No coverage' },
-            { label: 'Resisted by (0.5)',             labelColor: 'text-yellow-400', types: notCovered,     emptyText: 'Full coverage!' },
-          ]}
-        />
       </div>
+
+      {weaknesses.length === 0 && (
+        <p className="text-green-400 text-sm text-center">Perfectly balanced — no shared weaknesses!</p>
+      )}
+      {superEffective.length === 18 && (
+        <p className="text-indigo-400 text-sm text-center">Full offensive coverage — your team hits every type super effectively!</p>
+      )}
     </section>
   )
 }
