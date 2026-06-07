@@ -37,9 +37,18 @@ export function getEffectiveness(attackType, defenseTypes) {
   }, 1)
 }
 
-// Returns an object mapping each attacking type to its max effectiveness against the given types
-export function getOffensiveCoverage(defenseTypes) {
+// Defensive: given a Pokémon's types, returns how every attacking type fares against it.
+// e.g. getIncomingEffectiveness(['fire', 'flying']) → { rock: 4, water: 2, ground: 0, ... }
+export function getIncomingEffectiveness(defenseTypes) {
   return Object.fromEntries(
     TYPE_NAMES.map((t) => [t, getEffectiveness(t, defenseTypes)])
+  )
+}
+
+// Offensive: given an attacking type, returns how effective it is against every possible defending type.
+// e.g. getOutgoingEffectiveness('fire') → { grass: 2, steel: 2, water: 0.5, ... }
+export function getOutgoingEffectiveness(attackType) {
+  return Object.fromEntries(
+    TYPE_NAMES.map((defType) => [defType, getEffectiveness(attackType, [defType])])
   )
 }
