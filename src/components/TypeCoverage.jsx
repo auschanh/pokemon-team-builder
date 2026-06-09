@@ -80,7 +80,8 @@ export default function TypeCoverage({ team }) {
   }
 
   const superEffective = Object.entries(teamOffense).filter(([, m]) => m >= 2).map(([t]) => t)
-  const notCovered     = Object.entries(teamOffense).filter(([, m]) => m < 1).map(([t]) => t)
+  const neutral        = Object.entries(teamOffense).filter(([, m]) => m === 1).map(([t]) => t)
+  const resisted       = Object.entries(teamOffense).filter(([, m]) => m < 1).map(([t]) => t)
 
   return (
     <section className="space-y-4">
@@ -97,8 +98,6 @@ export default function TypeCoverage({ team }) {
       {showInfo && (
         <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm text-gray-400 space-y-2">
           <p><span className="text-gray-200 font-medium">Defensive</span> — shows types that threaten your team. A type only appears as a weakness if at least one Pokémon is weak to it <em>and</em> nobody else on your team resists or is immune to it. If someone covers it, it won't show.</p>
-          <p><span className="text-gray-200 font-medium">4x weak</span> — a dual-type Pokémon where both types are weak to the same attack, resulting in 4× damage. 
-          <p>Example: Charizard is <span className='text-orange-500'>fire</span> and <span className='text-violet-400'>flying</span> type, which are both 2x weak to <span className='text-stone-500'>rock</span>, meaning Charizard is 4x weak to <span className='text-stone-500'>rock</span>.</p></p>
           <p><span className="text-gray-200 font-medium">Offensive</span> — shows which defending types your team can hit super effectively, based on your Pokémon's own types. It reflects the best case across the whole team.</p>
           <p className="text-gray-600 text-xs">Note: this analysis is based on types only, not movesets. A Pokémon may cover a type through moves it can learn even if its typing doesn't.</p>
         </div>
@@ -109,8 +108,9 @@ export default function TypeCoverage({ team }) {
           accent="border-red-500"
           description="Your team attacking is:"
           sections={[
-            { label: '💪 (2x) Super effective against', labelColor: 'text-indigo-400', types: superEffective, emptyText: 'No coverage' },
-            { label: '(0.5) Resisted by',             labelColor: 'text-yellow-400', types: notCovered,     emptyText: 'Full coverage!' },
+            { label: '💪 (2x) Super effective', labelColor: 'text-indigo-400', types: superEffective, emptyText: 'No super effective coverage' },
+            { label: '(1x) Neutral', labelColor: 'text-gray-400', types: neutral, emptyText: 'No neutral matchups!' },
+            { label: '(0.5x) Resisted', labelColor: 'text-yellow-400', types: resisted, emptyText: 'Nothing resists you!' },
           ]}
         />
 
