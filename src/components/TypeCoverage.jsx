@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { TYPE_COLORS } from '../utils/typeColors'
-import { getIncomingEffectiveness, getOutgoingEffectiveness } from '../utils/typeChart'
+import { getIncomingEffectiveness, getOutgoingEffectiveness, getEffectiveness } from '../utils/typeChart'
 
 function TypeBadges({ types }) {
   if (types.length === 0) return <p className="text-xs text-gray-600 italic">None</p>
@@ -13,19 +13,76 @@ function TypeBadges({ types }) {
   )
 }
 
+// Collapsible section with per-pokemon breakdown
+function CollapsibleSection({ label, labelColor, entries, emptyText, breakdownText }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div>
+      <button
+        onClick={() => entries.length > 0 && setOpen(v => !v)}
+        className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-wide mb-2 ${labelColor} ${entries.length > 0 ? 'hover:opacity-80 cursor-pointer' : 'cursor-default'}`}
+      >
+        {label}
+        {entries.length > 0 && (
+          <span className="text-gray-400 text-sm">{open ? '▲' : '▼'}</span>
+        )}
+      </button>
+
+      {entries.length === 0
+        ? <p className="text-xs text-gray-600 italic">{emptyText}</p>
+        : (
+          <>
+            <div className="flex flex-wrap gap-2">
+              {entries.map(({ type }) => (
+                <span key={type} className={`text-xs px-2 py-1 rounded-full text-white font-medium capitalize ${TYPE_COLORS[type] ?? 'bg-gray-600'}`}>
+                  {type}
+                </span>
+              ))}
+            </div>
+
+            {open && (
+              <div className="mt-3 space-y-1.5 border-t border-gray-700 pt-3">
+                {entries.map(({ type, pokemon }) => (
+                  <div key={type} className="flex items-start gap-2 text-xs">
+                    <span className={`px-2 py-0.5 rounded-full text-white font-medium capitalize shrink-0 ${TYPE_COLORS[type] ?? 'bg-gray-600'}`}>{type}</span>
+                    <span className="text-gray-400">
+                      {pokemon.map((name, i) => (
+                        <span key={name}>
+                          {i > 0 && <span className="text-gray-600 mx-1">·</span>}
+                          <span className="capitalize">{name}</span>
+                        </span>
+                      ))}
+                      <span className="text-gray-600 ml-1">{breakdownText}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )
+      }
+    </div>
+  )
+}
+
 function CoverageCard({ title, accent, description, sections }) {
   return (
     <div className={`bg-gray-900 rounded-xl border-l-4 ${accent} p-5 space-y-5`}>
       <h3 className="text-base font-semibold text-gray-100">{title}</h3>
       <h4 className="text-sm text-gray-400">{description}</h4>
-      {sections.map(({ label, labelColor, types, emptyText }) => (
-        <div key={label}>
-          <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${labelColor}`}>{label}</p>
-          {types.length > 0
-            ? <TypeBadges types={types} />
-            : <p className="text-xs text-gray-600 italic">{emptyText}</p>
-          }
-        </div>
+      {sections.map(({ label, labelColor, types, entries, emptyText, breakdownText }) => (
+        entries
+          ? <CollapsibleSection key={label} label={label} labelColor={labelColor} entries={entries} emptyText={emptyText} breakdownText={breakdownText} />
+          : (
+            <div key={label}>
+              <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${labelColor}`}>{label}</p>
+              {types.length > 0
+                ? <TypeBadges types={types} />
+                : <p className="text-xs text-gray-600 italic">{emptyText}</p>
+              }
+            </div>
+          )
       ))}
     </div>
   )
@@ -46,25 +103,33 @@ export default function TypeCoverage({ team }) {
     }
   }
 
-  // 4x weak: at least one pokemon takes 4x AND nobody resists or is immune
   const weaknesses4x = Object.entries(teamDefenseAll)
     .filter(([, ms]) => ms.some(m => m >= 4) && !ms.some(m => m < 1))
-    .map(([t]) => t)
+    .map(([type]) => ({
+      type,
+      pokemon: team.filter(p => getIncomingEffectiveness(p.types)[type] >= 4).map(p => p.name)
+    }))
 
-  // 2x weak: at least one pokemon takes 2x (but not 4x) AND nobody resists or is immune
   const weaknesses2x = Object.entries(teamDefenseAll)
     .filter(([, ms]) => ms.some(m => m === 2) && !ms.some(m => m >= 4) && !ms.some(m => m < 1))
-    .map(([t]) => t)
+    .map(([type]) => ({
+      type,
+      pokemon: team.filter(p => getIncomingEffectiveness(p.types)[type] === 2).map(p => p.name)
+    }))
 
-  // Resists: at least one pokemon resists and nobody is weak to it
   const resistances = Object.entries(teamDefenseAll)
     .filter(([, ms]) => ms.some(m => m === 0.5) && !ms.some(m => m >= 2))
-    .map(([t]) => t)
+    .map(([type]) => ({
+      type,
+      pokemon: team.filter(p => getIncomingEffectiveness(p.types)[type] === 0.5).map(p => p.name)
+    }))
 
-  // Immune: at least one pokemon is immune
-  const immunities  = Object.entries(teamDefenseAll)
+  const immunities = Object.entries(teamDefenseAll)
     .filter(([, ms]) => ms.some(m => m === 0))
-    .map(([t]) => t)
+    .map(([type]) => ({
+      type,
+      pokemon: team.filter(p => getIncomingEffectiveness(p.types)[type] === 0).map(p => p.name)
+    }))
 
   // Offensive: what does this team hit hard?
   const teamOffense = {}
@@ -79,9 +144,25 @@ export default function TypeCoverage({ team }) {
     }
   }
 
-  const superEffective = Object.entries(teamOffense).filter(([, m]) => m >= 2).map(([t]) => t)
-  const neutral        = Object.entries(teamOffense).filter(([, m]) => m === 1).map(([t]) => t)
-  const resisted       = Object.entries(teamOffense).filter(([, m]) => m < 1).map(([t]) => t)
+  const superEffective = Object.entries(teamOffense)
+    .filter(([, m]) => m >= 2)
+    .map(([defType]) => ({
+      type: defType,
+      pokemon: team
+        .filter(p => p.types.some(attackType => getEffectiveness(attackType, [defType]) >= 2))
+        .map(p => p.name)
+    }))
+
+  const neutral = Object.entries(teamOffense).filter(([, m]) => m === 1).map(([t]) => t)
+
+  const resisted = Object.entries(teamOffense)
+    .filter(([, m]) => m < 1)
+    .map(([defType]) => ({
+      type: defType,
+      pokemon: team
+        .filter(p => p.types.some(attackType => getEffectiveness(attackType, [defType]) < 1))
+        .map(p => p.name)
+    }))
 
   return (
     <section className="space-y-4">
@@ -102,32 +183,33 @@ export default function TypeCoverage({ team }) {
           <p className="text-gray-600 text-xs">Note: this analysis is based on types only, not movesets. A Pokémon may cover a type through moves it can learn even if its typing doesn't.</p>
         </div>
       )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <CoverageCard
           title="⚔️ Offensive"
           accent="border-red-500"
           description="Your team attacking is:"
           sections={[
-            { label: '💪 (2x) Super effective', labelColor: 'text-indigo-400', types: superEffective, emptyText: 'No super effective coverage' },
-            { label: '(1x) Neutral', labelColor: 'text-gray-400', types: neutral, emptyText: 'No neutral matchups!' },
-            { label: '(0.5x) Resisted', labelColor: 'text-yellow-400', types: resisted, emptyText: 'Nothing resists you!' },
+            { label: '💪 (2x) Super effective', labelColor: 'text-indigo-400', entries: superEffective, emptyText: 'No super effective coverage', breakdownText: 'can hit this super effectively' },
+            { label: '(1x) Neutral',            labelColor: 'text-gray-400',   types: neutral,          emptyText: 'No neutral matchups!' },
+            { label: '(0.5x) Resisted',         labelColor: 'text-yellow-400', entries: resisted,       emptyText: 'Nothing resists you!', breakdownText: 'is resisted against this' },
           ]}
         />
 
-         <CoverageCard
+        <CoverageCard
           title="⛨ Defensive"
           accent="border-indigo-500"
           description="Your team defending (is):"
           sections={[
-            { label: '💀 (4x) Weak to',  labelColor: 'text-red-600',   types: weaknesses4x, emptyText: 'No 4x weaknesses!' },
-            { label: '(2x) Weak to', labelColor: 'text-red-400',  types: weaknesses2x, emptyText: 'No weaknesses!' },
-            { label: '(0.5x) Resists', labelColor: 'text-green-400', types: resistances,  emptyText: 'No resistances' },
-            { label: '(0) Immune to',  labelColor: 'text-blue-400',  types: immunities,   emptyText: 'No immunities' },
+            { label: '💀 (4x) Weak to', labelColor: 'text-red-600',   entries: weaknesses4x, emptyText: 'No 4x weaknesses!',  breakdownText: 'is 4x weak to this' },
+            { label: '(2x) Weak to',    labelColor: 'text-red-400',   entries: weaknesses2x, emptyText: 'No weaknesses!',     breakdownText: 'is weak to this' },
+            { label: '(0.5x) Resists',  labelColor: 'text-green-400', entries: resistances,  emptyText: 'No resistances',     breakdownText: 'resists this' },
+            { label: '(0) Immune to',   labelColor: 'text-blue-400',  entries: immunities,   emptyText: 'No immunities',      breakdownText: 'is immune to this' },
           ]}
         />
       </div>
 
-      {weaknesses4x.length === 0 && weaknesses2x.length === 0 && (
+      {weaknesses4x.length === 0 && weaknesses2x.length === 0 && team.length > 0 && (
         <p className="text-green-400 text-sm text-center">Perfectly balanced — no shared weaknesses!</p>
       )}
       {superEffective.length === 18 && (

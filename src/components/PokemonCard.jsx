@@ -18,6 +18,22 @@ export default function PokemonCard({ pokemon, onClick }) {
             </span>
           ))}
       </div>
+      <p className="text-xs text-gray-500 text-center mt-1">Gen {pokemon.gen}</p>
+      <div className="mt-2 space-y-0.5">
+        {Object.entries(pokemon.stats).map(([stat, value]) => (
+          <div key={stat} className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 w-10 shrink-0 uppercase">{stat}</span>
+            <div className="flex-1 bg-gray-700 rounded-full h-1">
+              <div
+                className="bg-indigo-500 h-1 rounded-full"
+                style={{ width: `${Math.min(value / 255 * 100, 100)}%` }}
+              />
+            </div>
+            <span className="text-xs text-gray-400 w-6 text-right">{value}</span>
+          </div>
+        ))}
+      </div>
+
     </button>
   )
 }
