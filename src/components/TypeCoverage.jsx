@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { TYPE_COLORS } from '../utils/typeColors'
 import { getIncomingEffectiveness, getOutgoingEffectiveness } from '../utils/typeChart'
 
@@ -31,6 +32,8 @@ function CoverageCard({ title, accent, description, sections }) {
 }
 
 export default function TypeCoverage({ team }) {
+  const [showInfo, setShowInfo] = useState(false)
+
   if (team.length === 0) return null
 
   // Defensive: for each type, collect every multiplier across the team
@@ -43,9 +46,14 @@ export default function TypeCoverage({ team }) {
     }
   }
 
-  // Weak to: at least one pokemon is weak AND nobody resists or is immune
-  const weaknesses  = Object.entries(teamDefenseAll)
-    .filter(([, ms]) => ms.some(m => m >= 2) && !ms.some(m => m < 1))
+  // 4x weak: at least one pokemon takes 4x AND nobody resists or is immune
+  const weaknesses4x = Object.entries(teamDefenseAll)
+    .filter(([, ms]) => ms.some(m => m >= 4) && !ms.some(m => m < 1))
+    .map(([t]) => t)
+
+  // 2x weak: at least one pokemon takes 2x (but not 4x) AND nobody resists or is immune
+  const weaknesses2x = Object.entries(teamDefenseAll)
+    .filter(([, ms]) => ms.some(m => m === 2) && !ms.some(m => m >= 4) && !ms.some(m => m < 1))
     .map(([t]) => t)
 
   // Resists: at least one pokemon resists and nobody is weak to it
@@ -76,16 +84,33 @@ export default function TypeCoverage({ team }) {
 
   return (
     <section className="space-y-4">
-      <h2 className="text-lg font-semibold">Type Coverage</h2>
+      <div className="flex items-center gap-3">
+        <h2 className="text-lg font-semibold">Type Coverage</h2>
+        <button
+          onClick={() => setShowInfo(v => !v)}
+          className="text-xs text-gray-500 hover:text-gray-300 border border-gray-700 rounded-full px-2 py-0.5 transition-colors"
+        >
+          {showInfo ? 'Hide' : 'How does this work?'}
+        </button>
+      </div>
 
+      {showInfo && (
+        <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm text-gray-400 space-y-2">
+          <p><span className="text-gray-200 font-medium">Defensive</span> — shows types that threaten your team. A type only appears as a weakness if at least one Pokémon is weak to it <em>and</em> nobody else on your team resists or is immune to it. If someone covers it, it won't show.</p>
+          <p><span className="text-gray-200 font-medium">4x weak</span> — a dual-type Pokémon where both types are weak to the same attack, resulting in 4× damage. 
+          <p>Example: Charizard is <span className='text-orange-500'>fire</span> and <span className='text-violet-400'>flying</span> type, which are both 2x weak to <span className='text-stone-500'>rock</span>, meaning Charizard is 4x weak to <span className='text-stone-500'>rock</span>.</p></p>
+          <p><span className="text-gray-200 font-medium">Offensive</span> — shows which defending types your team can hit super effectively, based on your Pokémon's own types. It reflects the best case across the whole team.</p>
+          <p className="text-gray-600 text-xs">Note: this analysis is based on types only, not movesets. A Pokémon may cover a type through moves it can learn even if its typing doesn't.</p>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <CoverageCard
           title="⚔️ Offensive"
           accent="border-red-500"
           description="Your team attacking is:"
           sections={[
-            { label: 'Super effective against (2x)', labelColor: 'text-indigo-400', types: superEffective, emptyText: 'No coverage' },
-            { label: 'Resisted by (0.5)',             labelColor: 'text-yellow-400', types: notCovered,     emptyText: 'Full coverage!' },
+            { label: '💪 (2x) Super effective against', labelColor: 'text-indigo-400', types: superEffective, emptyText: 'No coverage' },
+            { label: '(0.5) Resisted by',             labelColor: 'text-yellow-400', types: notCovered,     emptyText: 'Full coverage!' },
           ]}
         />
 
@@ -94,14 +119,15 @@ export default function TypeCoverage({ team }) {
           accent="border-indigo-500"
           description="Your team defending (is):"
           sections={[
-            { label: 'Weak to (2x)',   labelColor: 'text-red-400',   types: weaknesses,  emptyText: 'No weaknesses!' },
-            { label: 'Resists (0.5x)',   labelColor: 'text-green-400', types: resistances, emptyText: 'No resistances' },
-            { label: 'Immune to (0)', labelColor: 'text-blue-400',  types: immunities,  emptyText: 'No immunities' },
+            { label: '💀 (4x) Weak to',  labelColor: 'text-red-600',   types: weaknesses4x, emptyText: 'No 4x weaknesses!' },
+            { label: '(2x) Weak to', labelColor: 'text-red-400',  types: weaknesses2x, emptyText: 'No weaknesses!' },
+            { label: '(0.5x) Resists', labelColor: 'text-green-400', types: resistances,  emptyText: 'No resistances' },
+            { label: '(0) Immune to',  labelColor: 'text-blue-400',  types: immunities,   emptyText: 'No immunities' },
           ]}
         />
       </div>
 
-      {weaknesses.length === 0 && (
+      {weaknesses4x.length === 0 && weaknesses2x.length === 0 && (
         <p className="text-green-400 text-sm text-center">Perfectly balanced — no shared weaknesses!</p>
       )}
       {superEffective.length === 18 && (
